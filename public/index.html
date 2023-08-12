@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat app</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      .Container {
+        width: 100%;
+        height: 600px;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 10px;
+        box-sizing: border-box;
+        flex-direction: column;
+      }
+      .shadow {
+        box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px,
+          rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
+        border-radius: 5px;
+      }
+      .background {
+        width: 400px;
+        height: 500px;
+        background-color: rgb(250, 250, 250);
+        padding-left: 10px;
+        border-radius: 5px;
+        padding-right: 3px;
+      }
+
+      .send-div {
+        width: 100%;
+        height: auto;
+      }
+      .send-div input {
+        width: 80%;
+        border-radius: 5px;
+        height: 25px;
+        border: none;
+      }
+      .send-div .btn {
+        width: 70px;
+        height: 28px;
+        border-radius: 5px;
+        background-color: rgb(1, 65, 91);
+        color: white;
+        cursor: pointer;
+        border: none;
+      }
+      .join-div {
+        padding-bottom: 15px;
+      }
+      .join-div input {
+        width: 63%;
+        border-radius: 5px;
+        height: 25px;
+        border: 1px solid rgb(1, 65, 91);
+      }
+      .join-div .btn {
+        width: 70px;
+        height: 28px;
+        border-radius: 5px;
+        background-color: rgb(1, 65, 91);
+        color: white;
+        cursor: pointer;
+        border: none;
+      }
+      .content {
+        width: 400px;
+        height: 468px;
+        padding: 5px 5px;
+        word-wrap: break-word;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+      .content p.right {
+        width: 45%;
+        height: auto;
+        box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px,
+          rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
+        border-radius: 5px;
+        background-color: black;
+        margin: 10px 0px 10px 180px;
+        color: white;
+        padding: 5px;
+      }
+      .content p label {
+        font-size: 13px;
+        padding-top: 4px;
+        padding-bottom: 5px;
+        float: right;
+      }
+      .content p {
+        width: 45%;
+        height: auto;
+        box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px,
+          rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
+        border-radius: 5px;
+        background-color: white;
+        margin: 10px;
+        color: black;
+        padding: 5px;
+      }
+      @media screen and (max-width: 421px) {
+        .background {
+          width: 300px;
+          height: auto;
+        }
+        .send-div {
+          padding: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="Container">
+      <div>
+        <div class="join-div">
+          <input
+            type="text"
+            name="room"
+            id="room"
+            placeholder="Enter Room ID"
+          />
+          <button class="btn" onclick="join_room()">Join</button>
+          <button class="btn" onclick="Exit_room()">Exit</button>
+        </div>
+        <div class="shadow">
+          <div class="background">
+            <div class="content" id="content"></div>
+            <div class="send-div">
+              <input
+                type="text"
+                id="message"
+                name="message"
+                placeholder="Enter the message"
+              />
+              <button class="btn" onclick="sendMessage()">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      function scrolltobuttom() {
+        let connent = document.getElementById("content");
+        connent.scrollTop = connent.scrollHeight;
+      }
+      function join_room() {
+        let input_room = document.getElementById("room").value;
+        if (input_room.length !== 0) {
+          localStorage.setItem("room_id", JSON.stringify(input_room));
+          socket.emit("Join_room", input_room);
+          document.getElementById("room").value = "";
+          alert("Connected");
+        } else {
+          alert("Enter the room id");
+        }
+      }
+      function Exit_room() {
+        if (localStorage["room_id"]) {
+          localStorage.removeItem("room_id");
+          alert("connection closed");
+        } else {
+          alert("connection not Created");
+        }
+      }
+      const sendMessage = () => {
+        if (localStorage["room_id"]) {
+          const input_message = document.getElementById("message").value;
+          let room_id = JSON.parse(localStorage["room_id"]);
+          if (input_message.length !== 0) {
+            let element = document.createElement("p");
+            let element1 = document.createElement("label");
+
+            element.textContent = input_message;
+            element1.textContent = `${new Date().getHours()}:${new Date().getMinutes()}`;
+            element.appendChild(element1);
+            element.classList.add("right");
+            document.getElementById("content").appendChild(element);
+            scrolltobuttom();
+
+            socket.emit("chat message", input_message, room_id);
+            document.getElementById("message").value = "";
+          } else {
+            alert("Enter the Message");
+          }
+        } else {
+          alert("Enter the Room id for Communication");
+        }
+      };
+      socket.on("chat_message_res", (res) => {
+        let element = document.createElement("p");
+        let element1 = document.createElement("label");
+        element.textContent = res;
+        element1.textContent = `${new Date().getHours()}:${new Date().getMinutes()}`;
+        element.appendChild(element1);
+        document.getElementById("content").appendChild(element);
+      });
+    </script>
+  </body>
+</html>
